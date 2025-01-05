@@ -1,15 +1,11 @@
 import os
-import requests
 from bs4 import BeautifulSoup
 from time import sleep
 import csv
 
 import selenium
 from selenium import webdriver
-# from selenium.webdriver import Chrome
-# from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.by import By # for find_element
-
+from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
  
@@ -17,6 +13,12 @@ from selenium.webdriver.support import expected_conditions as EC
 lyrics_data_path = './dataset'
 if not os.path.exists(lyrics_data_path):
     os.makedirs(lyrics_data_path)
+
+# CSV 파일 초기화
+csv_file_path = os.path.join(lyrics_data_path, 'top100_chart_2023_2014.csv')
+with open(csv_file_path, mode='w', newline='', encoding='utf-8-sig') as file:
+    writer = csv.writer(file)
+    writer.writerow(['title', 'singer', 'genre', 'lyrics']) # header
 
 # 셀리니움 크롤링 함수 설정
 driver = webdriver.Chrome() # 드라이버 설정
@@ -43,7 +45,7 @@ try:
         driver.find_element(By.XPATH, f'//*[@id="d_chart_search"]/div/div/div[1]/div[1]/ul/li[{decade_index}]/span/label').click()
         sleep(1)
 
-        for year_index in (range(1, 5) if decade_index == 1 else range(1, 8)):
+        for year_index in (range(1, 5) if decade_index == 1 else range(1, 7)):
             ### 연도 선택
             driver.find_element(By.XPATH, f'//*[@id="d_chart_search"]/div/div/div[2]/div[1]/ul/li[{year_index}]/span/label').click()
             sleep(1)
@@ -52,12 +54,23 @@ try:
             driver.find_element(By.XPATH, '//*[@id="d_chart_search"]/div/div/div[5]/div[1]/ul/li[2]/span/label').click()
             sleep(1)
 
-            ### 검색 버튼
+            ### 검색 버튼 클릭
             driver.find_element(By.XPATH, '//*[@id="d_srch_form"]/div[2]/button/span/span').click()
             sleep(1)
 
             # TOP100 순회 및 데이터 수집
             for song_index in range(1, 101):
+                
+                # 51-100위 일 경우 처리
+                if song_index == 51:
+                    try:
+                        driver.find_element(By.XPATH, '//*[@id="frm"]/div[2]/span/a').click()
+                        sleep(1)
+                    except Exception as page_error:
+                        print(f"Error while navigating to top 51-100: {page_error}")
+                        break
+                
+                # 음악 상세 페이지 이동
                 driver.find_element(By.XPATH, f'//*[@id="chartListObj"]/tr[{song_index}]/td[4]/div/a').click()
                 
                 # html 정보 가져오기
@@ -70,13 +83,28 @@ try:
                     soup = BeautifulSoup(html, 'lxml')
 
                     # 데이터 수집
-                    title = soup.find('div', class_='song_name').text.replace('곡명', '').strip()
-                    print(title)
+                    title = soup.select_one('#downloadfrm > div > div > div.entry > div.info > div.song_name')
+                    title.strong.extract()
+                    title = title.text.strip()
+                    singer = soup.select_one('#downloadfrm > div > div > div.entry > div.info > div.artist > a').span.extract().text.strip()
+                    genre = soup.select_one('#downloadfrm > div > div > div.entry > div.meta > dl > dd:nth-child(6)').text.strip()
+                    lyrics = soup.select_one('#d_video_summary')
+
+                    # 가사 줄바꿈 공백 변환
+                    for br in lyrics.find_all('br'):
+                        br.replace_with(' ')
+                    lyrics = lyrics.text.strip()
+
+                    # 데이터 저장
+                    with open(csv_file_path, mode='a', newline='', encoding='utf-8-sig') as file:
+                        writer = csv.writer(file)
+                        writer.writerow([title, singer, genre, lyrics])
+                    print(f'Saved: {title} - {singer}')
                     
                 except Exception as inner_e:
                     print(f"Error while fetching song title: {inner_e}")
                 
-                #----------- 이후 이전 페이지로 돌아감
+                # 이전 페이지로 돌아감
                 driver.back()
                 sleep(1)
 
@@ -84,5 +112,6 @@ try:
 except Exception as e:
     print('Error:', e)
 
-
-sleep(10)
+finally:
+    driver.quit()  # 드라이버 종료
+    print("Crawling finished")
