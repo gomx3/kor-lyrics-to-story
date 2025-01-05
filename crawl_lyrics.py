@@ -8,7 +8,8 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
- 
+from selenium.webdriver.chrome.options import Options
+
 # 데이터 저장 파일 경로
 lyrics_data_path = './dataset'
 if not os.path.exists(lyrics_data_path):
@@ -18,14 +19,45 @@ if not os.path.exists(lyrics_data_path):
 csv_file_path = os.path.join(lyrics_data_path, 'top100_chart_2023_2014.csv')
 with open(csv_file_path, mode='w', newline='', encoding='utf-8-sig') as file:
     writer = csv.writer(file)
-    writer.writerow(['title', 'singer', 'genre', 'lyrics']) # header
+    writer.writerow(['id', 'title', 'singer', 'genre', 'lyrics']) # header
 
 # 셀리니움 크롤링 함수 설정
-driver = webdriver.Chrome() # 드라이버 설정
+options = Options() # 자동화 도구 접근 제한 우회
+options.add_argument("--disable-blink-features=AutomationControlled") # Automation Info Bar 비활성화 
+options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+
+driver = webdriver.Chrome(options=options) # 드라이버 설정
 
 url = 'https://www.melon.com/chart/age/index.htm' # 멜론 차트 페이지 주소
 driver.get(url) # 드라이버가 해당 url 접속
 sleep(2)
+
+
+
+# 멜론 로그인
+driver.find_element(By.CLASS_NAME, 'menu_bg.menu09').click()
+sleep(1)
+
+driver.find_element(By.CLASS_NAME, 'btn_gate.melon').click()
+sleep(1)
+
+user_id = input("id: ")
+user_pw = input("pw: ")
+
+driver.find_element(By.CLASS_NAME, 'text51').click()
+sleep(1)
+driver.find_element(By.CLASS_NAME, 'text51').send_keys(user_id)
+sleep(1)
+
+driver.find_element(By.CLASS_NAME, 'text51.text_password01').click()
+sleep(1)
+driver.find_element(By.CLASS_NAME, 'text51.text_password01').send_keys(user_pw)
+sleep(1)
+
+driver.find_element(By.CLASS_NAME, 'btn_login03').click()
+sleep(1)
+
+
 
 # 연도 순회
 try:
@@ -83,6 +115,12 @@ try:
                     soup = BeautifulSoup(html, 'lxml')
 
                     # 데이터 수집
+                    song_detail_url = soup.select_one('head > meta:nth-child(12)').get('content')
+                    if 'songId=' in song_detail_url:
+                        id = song_detail_url.split('songId=')[-1] # url에서 songId 추출
+                    else:
+                        print(f'songId is not found in {song_detail_url}')
+
                     title = soup.select_one('#downloadfrm > div > div > div.entry > div.info > div.song_name')
                     title.strong.extract()
                     title = title.text.strip()
@@ -90,7 +128,7 @@ try:
                     genre = soup.select_one('#downloadfrm > div > div > div.entry > div.meta > dl > dd:nth-child(6)').text.strip()
                     lyrics = soup.select_one('#d_video_summary')
 
-                    # 가사 줄바꿈 공백 변환
+                    # 가사 줄바꿈을 공백으로 변환
                     for br in lyrics.find_all('br'):
                         br.replace_with(' ')
                     lyrics = lyrics.text.strip()
@@ -98,7 +136,7 @@ try:
                     # 데이터 저장
                     with open(csv_file_path, mode='a', newline='', encoding='utf-8-sig') as file:
                         writer = csv.writer(file)
-                        writer.writerow([title, singer, genre, lyrics])
+                        writer.writerow([id, title, singer, genre, lyrics])
                     print(f'Saved: {title} - {singer}')
                     
                 except Exception as inner_e:
@@ -108,9 +146,10 @@ try:
                 driver.back()
                 sleep(1)
 
-
 except Exception as e:
     print('Error:', e)
+
+
 
 finally:
     driver.quit()  # 드라이버 종료
