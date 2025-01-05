@@ -2,6 +2,7 @@ import os
 from bs4 import BeautifulSoup
 from time import sleep
 import csv
+import random
 
 import selenium
 from selenium import webdriver
@@ -9,6 +10,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
+
+
 
 # 데이터 저장 파일 경로
 lyrics_data_path = './dataset'
@@ -24,7 +27,7 @@ with open(csv_file_path, mode='w', newline='', encoding='utf-8-sig') as file:
 # 셀리니움 크롤링 함수 설정
 options = Options() # 자동화 도구 접근 제한 우회
 options.add_argument("--disable-blink-features=AutomationControlled") # Automation Info Bar 비활성화 
-options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Whale/4.29.282.14 Safari/537.36")
 
 driver = webdriver.Chrome(options=options) # 드라이버 설정
 
@@ -106,6 +109,7 @@ try:
                 driver.find_element(By.XPATH, f'//*[@id="chartListObj"]/tr[{song_index}]/td[4]/div/a').click()
                 
                 # html 정보 가져오기
+                sleep(random.uniform(1, 5)) # 크롤링 속도 불규칙 조정
                 try:
                     # song_name 요소가 로드될 때까지 대기
                     WebDriverWait(driver, 10).until(
@@ -123,6 +127,8 @@ try:
 
                     title = soup.select_one('#downloadfrm > div > div > div.entry > div.info > div.song_name')
                     title.strong.extract()
+                    for span in title.find_all('span'): # 성인 인증 필요한 곡 span 태그 제거
+                        span.extract()
                     title = title.text.strip()
                     singer = soup.select_one('#downloadfrm > div > div > div.entry > div.info > div.artist > a').span.extract().text.strip()
                     genre = soup.select_one('#downloadfrm > div > div > div.entry > div.meta > dl > dd:nth-child(6)').text.strip()
