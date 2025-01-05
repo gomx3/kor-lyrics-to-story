@@ -1,6 +1,6 @@
 # kor-lyrics-to-story
 
-CUAI Winter Conference 2024 NLP TEAM 2
+CUAI Winter Conference 2024 NLP TEAM 2 (25.01.05~)
 
 ## 🪽 노래 가사로 스토리 생성 AI
 
