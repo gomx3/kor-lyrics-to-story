@@ -1,0 +1,97 @@
+import pandas as pd
+import torch
+from transformers import GPT2LMHeadModel, PreTrainedTokenizerFast, Trainer, TrainingArguments
+from torch.utils.data import Dataset, DataLoader
+
+totalLyrics = 50
+
+# 가사 데이터 불러오기 함수
+def getLyricsFromCSV():
+    df = pd.read_csv("./dataset/top100_chart_2023_2014.csv")
+    lyrics = df.loc[:(totalLyrics - 1), "lyrics"].to_list()
+
+    return lyrics
+
+# 데이터셋 클래스 정의
+class LyricsDataset(Dataset):
+    def __init__(self, lyrics, tokenizer, max_length=512):
+        self.lyrics = lyrics
+        self.tokenizer = tokenizer
+        self.max_length = max_length
+
+    def __len__(self):
+        return len(self.lyrics)
+
+    def __getitem__(self, idx):
+        encoding = self.tokenizer.encode_plus(
+            self.lyrics[idx],
+            add_special_tokens=True,
+            max_length=self.max_length,
+            padding='max_length',
+            truncation=True,
+            return_tensors='pt'
+        )
+        input_ids = encoding['input_ids'].flatten()
+        attention_mask = encoding['attention_mask'].flatten()
+
+        # labels 생성 (input_ids 복사 및 패딩 토큰을 -100으로 설정)
+        labels = input_ids.clone()
+        labels[labels == self.tokenizer.pad_token_id] = -100
+
+        return {
+            'input_ids': input_ids,
+            'attention_mask': attention_mask,
+            'labels': labels,
+        }
+
+# 데이터 준비
+lyrics = getLyricsFromCSV()
+
+tokenizer = PreTrainedTokenizerFast.from_pretrained("skt/kogpt2-base-v2",
+                                                    bos_token='</s>', 
+                                                    eos_token='</s>', 
+                                                    unk_token='<unk>',
+                                                    pad_token='<pad>', 
+                                                    mask_token='<mask>')
+dataset = LyricsDataset(lyrics, tokenizer)
+dataloader = DataLoader(dataset, batch_size=2)
+
+# 모델 초기화
+model = GPT2LMHeadModel.from_pretrained('skt/kogpt2-base-v2')
+
+# >>> 모델 토큰 지원 추가
+model.config.pad_token_id = tokenizer.pad_token_id
+model.config.eos_token_id = tokenizer.eos_token_id
+model.config.bos_token_id = tokenizer.bos_token_id
+
+
+# 학습 인자 설정
+training_args = TrainingArguments(
+    output_dir='./results',
+    num_train_epochs=3,
+    per_device_train_batch_size=2,
+    save_steps=10,
+    save_total_limit=2,
+)
+
+# Trainer 설정
+trainer = Trainer(
+    model=model,
+    args=training_args,
+    train_dataset=dataset,
+)
+
+# 모델 학습
+trainer.train()
+
+# 이야기 생성 함수
+def generate_story(lyrics_input):
+    input_ids = tokenizer.encode(lyrics_input, return_tensors='pt')
+    output = model.generate(input_ids, max_length=150, num_return_sequences=1)
+    generated_story = tokenizer.decode(output[0], skip_special_tokens=True)
+    return generated_story
+
+# 예시 가사로 이야기 생성
+lyrics_input = "떴다 떴다 비행기 날아라 날아라 높이 높이 날아라 우리 비행기"
+generated_story = generate_story(lyrics_input)
+print("생성된 이야기:", generated_story)

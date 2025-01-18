@@ -6,13 +6,17 @@ CUAI Winter Conference 2024 NLP TEAM 2 (25.01.05~)
 
 이는 노래 가사를 입력하면 이야기를 생성하는 AI 프로젝트로, CUAI 7기 동계 컨퍼런스 NLP 2팀에서 진행했습니다.
 
-- CUAI 레포지토리: _
+- CUAI 레포지토리: \_
 
 ## 🌀 진행 현황
+
 - 멜론 차트 TOP100 10년치 분량 데이터 크롤링 (id, title, singer, genre, lyrics)
-- 
 
 ## 🛠️
-- Python(^3.11.7)
+
+- Python(^3.9.21)
 - BeautifulSoup4(^4.12.2)
 - Selenium(^4.19.0)
+- torch(^2.5.1)
+- transformers(^4.48.0)
+- accelerate(^1.3.0)
