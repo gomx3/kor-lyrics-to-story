@@ -14,7 +14,7 @@ from selenium.webdriver.chrome.options import Options
 
 
 # 데이터 저장 파일 경로
-lyrics_data_path = './dataset'
+lyrics_data_path = './datasets'
 if not os.path.exists(lyrics_data_path):
     os.makedirs(lyrics_data_path)
 
