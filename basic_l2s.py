@@ -1,19 +1,32 @@
+import os
 import pandas as pd
 import torch
 from transformers import GPT2LMHeadModel, PreTrainedTokenizerFast, Trainer, TrainingArguments
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader 
+import json
 
-totalLyrics = 50
+totalNovels = 10
 
-# 가사 데이터 불러오기 함수
-def getLyricsFromCSV():
-    df = pd.read_csv("./dataset/top100_chart_2023_2014.csv")
-    lyrics = df.loc[:(totalLyrics - 1), "lyrics"].to_list()
+# 소설 데이터 불러오기 함수
+def getNovelsFromCSV():
+    json_file_path = './datasets/novels_data.json' # JSON 파일 경로
 
-    return lyrics
+    novels_list = [] # 소설 content 값을 저장할 리스트
+
+    # JSON 파일 읽기
+    with open(json_file_path, 'r', encoding='utf-8') as f:
+        novels = json.load(f)
+
+        # content 값만 추출하여 리스트에 추가 (totalNovels만큼만 반복)
+        for i, novel in enumerate(novels):
+            if i >= totalNovels: break  # totalNovels 만큼만 처리
+
+            novels_list.append(novel['content'])
+
+    return novels_list
 
 # 데이터셋 클래스 정의
-class LyricsDataset(Dataset):
+class NovelsDataset(Dataset):
     def __init__(self, lyrics, tokenizer, max_length=512):
         self.lyrics = lyrics
         self.tokenizer = tokenizer
@@ -45,7 +58,7 @@ class LyricsDataset(Dataset):
         }
 
 # 데이터 준비
-lyrics = getLyricsFromCSV()
+novels = getNovelsFromCSV()
 
 tokenizer = PreTrainedTokenizerFast.from_pretrained("skt/kogpt2-base-v2",
                                                     bos_token='</s>', 
@@ -53,7 +66,7 @@ tokenizer = PreTrainedTokenizerFast.from_pretrained("skt/kogpt2-base-v2",
                                                     unk_token='<unk>',
                                                     pad_token='<pad>', 
                                                     mask_token='<mask>')
-dataset = LyricsDataset(lyrics, tokenizer)
+dataset = NovelsDataset(novels, tokenizer)
 dataloader = DataLoader(dataset, batch_size=2)
 
 # 모델 초기화
