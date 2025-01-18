@@ -11,6 +11,7 @@ CUAI Winter Conference 2024 NLP TEAM 2 (25.01.05~)
 ## 🌀 진행 현황
 
 - 멜론 차트 TOP100 10년치 분량 데이터 크롤링 (id, title, singer, genre, lyrics)
+- koGPT2에 소설 데이터 학습 모델링
 
 ## 🛠️
 
