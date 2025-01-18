@@ -63,12 +63,14 @@ class NovelsDataset(Dataset):
 # 데이터 준비
 novels = getNovelsFromCSV()
 
-tokenizer = PreTrainedTokenizerFast.from_pretrained("skt/kogpt2-base-v2",
-                                                    bos_token='</s>', 
-                                                    eos_token='</s>', 
-                                                    unk_token='<unk>',
-                                                    pad_token='<pad>', 
-                                                    mask_token='<mask>')
+tokenizer = PreTrainedTokenizerFast.from_pretrained(
+    "skt/kogpt2-base-v2",
+    bos_token='</s>', 
+    eos_token='</s>', 
+    unk_token='<unk>',
+    pad_token='<pad>', 
+    mask_token='<mask>'
+)
 dataset = NovelsDataset(novels, tokenizer)
 dataloader = DataLoader(dataset, batch_size=2)
 
@@ -119,17 +121,24 @@ def generate_story(lyrics_input, emotion_tag="슬픔"):
     input_ids = tokenizer.encode(emotion_input, return_tensors='pt')
 
     # 출력 생성
-    output = model.generate(input_ids, max_length=200, num_return_sequences=1, 
-                            temperature=0.8, top_k=50, top_p=0.9, repetition_penalty=1.2, do_sample=True  # 샘플링 활성화
+    output = model.generate(
+        input_ids, 
+        max_new_tokens=300, # 새로 생성할 토큰의 개수를 제한
+        num_return_sequences=1, 
+        temperature=0.8, 
+        top_k=50, 
+        top_p=0.9, 
+        repetition_penalty=1.2, 
+        do_sample=True  # 샘플링 활성화
     )
 
-    # 입력 토큰 개수 계산
+    # 입력 길이 추적
     input_length = input_ids.shape[1]
 
     # 생성된 토큰 중 입력 토큰 이후의 부분만 디코딩
     generated_tokens = output[0][input_length:]
     generated_story = tokenizer.decode(generated_tokens, skip_special_tokens=True)
-    
+
     return generated_story
 
 # 가사로 이야기 생성
