@@ -1,11 +1,12 @@
 import os
 import pandas as pd
+import json
 import torch
 from transformers import GPT2LMHeadModel, PreTrainedTokenizerFast, Trainer, TrainingArguments
 from torch.utils.data import Dataset, DataLoader 
-import json
+from sklearn.model_selection import train_test_split
 
-totalNovels = 15
+totalNovels = 100
 
 # 소설 데이터 불러오기 함수
 def getNovelsFromCSV():
@@ -20,9 +21,9 @@ def getNovelsFromCSV():
         # content 값만 추출하여 리스트에 추가 (totalNovels만큼만 반복)
         for i, novel in enumerate(novels):
             if i >= totalNovels: break  # totalNovels 만큼만 처리
-
-            # 슬픔 태그를 여러 번 추가 (예: 3번 반복)
-            emotion_tag = "[슬픔] " * 3  # 슬픔 태그 3번 반복
+            
+            # content에 감정 태그 추가
+            emotion_tag = "[슬픔] "
             novels_list.append(emotion_tag + novel['content'])
 
     return novels_list
@@ -74,7 +75,6 @@ dataloader = DataLoader(dataset, batch_size=2)
 # 모델 초기화
 model = GPT2LMHeadModel.from_pretrained('skt/kogpt2-base-v2')
 
-# >>> 모델 토큰 지원 추가
 model.config.pad_token_id = tokenizer.pad_token_id
 model.config.eos_token_id = tokenizer.eos_token_id
 model.config.bos_token_id = tokenizer.bos_token_id
@@ -83,18 +83,29 @@ model.config.bos_token_id = tokenizer.bos_token_id
 # 학습 인자 설정
 training_args = TrainingArguments(
     output_dir='./results',
-    num_train_epochs=3,
+    num_train_epochs=5,
     per_device_train_batch_size=2,
-    save_steps=10,
+    gradient_accumulation_steps=4,
+    learning_rate=5e-5,
+    save_steps=50,
     save_total_limit=2,
+    logging_steps=10,
+    eval_strategy="epoch",
 )
 
-# Trainer 설정
+train_novels, eval_novels = train_test_split(novels, test_size=0.2, random_state=42)
+
+train_dataset = NovelsDataset(train_novels, tokenizer)
+eval_dataset = NovelsDataset(eval_novels, tokenizer)
+
+# Trainer에 데이터셋 전달
 trainer = Trainer(
     model=model,
     args=training_args,
-    train_dataset=dataset,
+    train_dataset=train_dataset,
+    eval_dataset=eval_dataset,  # 검증 데이터셋
 )
+
 
 # 모델 학습
 trainer.train()
@@ -104,13 +115,14 @@ def generate_story(lyrics_input, emotion_tag="슬픔"):
     # 감정 태그를 앞에 추가하여 모델에 전달
     emotion_input = f"[{emotion_tag}] {lyrics_input}"
 
-    # 모델에 감정 태그와 함께 텍스트 입력
     input_ids = tokenizer.encode(emotion_input, return_tensors='pt')
-    output = model.generate(input_ids, max_length=150, num_return_sequences=1)
+    output = model.generate(input_ids, max_length=150, num_return_sequences=1, 
+                            temperature=0.8, top_k=50, top_p=0.9, repetition_penalty=1.2, do_sample=True  # 샘플링 활성화
+    )
     generated_story = tokenizer.decode(output[0], skip_special_tokens=True)
     return generated_story
 
-# 예시 가사로 이야기 생성
+# 가사로 이야기 생성
 lyrics_input = "떴다 떴다 비행기 날아라 날아라 높이 높이 날아라 우리 비행기"
 generated_story = generate_story(lyrics_input, emotion_tag="슬픔")
-print("생성된 슬픈 이야기:", generated_story)
+print("생성된 이야기:", generated_story)
