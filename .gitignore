@@ -397,4 +397,4 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 
-dataset/
+dataset/top100_chart_2023_2014.csv
