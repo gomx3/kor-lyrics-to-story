@@ -11,9 +11,9 @@ CUAI Winter Conference 2024 NLP TEAM 2 (25.01.05~)
 ## 🌀 진행 현황
 
 - [x] 멜론 차트 TOP100 10년치 분량 가사 데이터 크롤링 (id, title, singer, genre, lyrics)
-- [x] koGPT2에 소설 데이터 학습 모델링
+- [x] koGPT2 활용해 태깅 없이 이야기 생성 모델 학습
 - [x] KLUE/roberta-base 활용해 감성 분류 모델 생성
-- [] 감성, 테마 태깅 후 이야기 생성 모델 학습 필요
+- [] 감성, 테마 태깅 후 이야기 생성 모델 학습 후 성능 확인
 
 ## 🛠️
 
