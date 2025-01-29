@@ -9,7 +9,8 @@ data = pd.DataFrame(data).head(50)
 classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
 
 # 3. 분류할 주제 정의
-candidate_labels = ["사랑", "우정", "일상", "자신감", "파티", "추억"]
+# candidate_labels = ["사랑", "우정", "일상", "자신감", "파티", "추억"]
+labels = ['기쁨', '슬픔', '당황', '분노', '상처', '불안']
 
 # 4. 가사별 주제 분석
 def analyze_themes(lyrics_list, labels):
@@ -33,4 +34,4 @@ df = pd.DataFrame(theme_results)
 print(df)
 
 # 결과를 CSV 파일로 저장
-df.to_csv("yushilove.csv", index=False, encoding="utf-8-sig")
+df.to_csv("lyrics_test.csv", index=False, encoding="utf-8-sig")
