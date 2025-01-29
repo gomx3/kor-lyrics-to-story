@@ -15,7 +15,7 @@ CUAI Winter Conference 2024 NLP TEAM 2 (25.01.05~)
 
 ## 🛠️
 
-- Python(^3.9.21)
+- Python(^3.8.20)
 - BeautifulSoup4(^4.12.2)
 - Selenium(^4.19.0)
 - torch(^2.5.1)
